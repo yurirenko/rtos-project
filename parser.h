@@ -11,7 +11,7 @@ typedef struct
   int pflag;
 } Arguments;
 
-Arguments parse_args(int argc, char **argv, const char *options);
+Arguments parseArgs(int argc, char **argv, const char *options);
 
 
 

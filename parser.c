@@ -4,7 +4,7 @@
 #include "array.h"
 #include "parser.h"
 
-Arguments parse_args(int argc, char **argv, const char *options) {
+Arguments parseArgs(int argc, char **argv, const char *options) {
     int c;
     Arguments inArgs;
     initArray(&inArgs.filenames, 1);
