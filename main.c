@@ -45,7 +45,7 @@ int main(int argc, char **argv)
   FILE *fp;
   int tasksCount;
   char *line;
-  Array periods, wcets, tasksFreq, schedTable;
+  Array periods, wcets, tasksFreq, schedTable, delays;
 
   size_t len = 0;
   ssize_t read;
@@ -77,10 +77,10 @@ int main(int argc, char **argv)
   minCycle = result;
   majCycle = lcms(periods.used, periods.array);
 
-  for (i = 0; i < tasksCount; ++i)
-  {
-    printf("Period: %d; WCET: %d task: %s\n", periods.array[i], wcets.array[i], (char*)inArgs.filenames.array[i]);
-  }
+  // for (i = 0; i < tasksCount; ++i)
+  // {
+  //   printf("Period: %d; WCET: %d task: %s\n", periods.array[i], wcets.array[i], (char*)inArgs.filenames.array[i]);
+  // }
 
 
 
@@ -98,7 +98,16 @@ int main(int argc, char **argv)
     insertArray(&tasksFreq, majCycle/periods.array[i]);
   }
   int time = 0;
-  int j;
+  int wcetsSum = 0;
+  initArray(&delays, tasksCount);
+  Array oldPeriods;
+  initArray(&oldPeriods, 1);
+  for (i = 0; i < tasksCount; ++i)
+  {
+    printf("%d\n",periods.array[i] );
+    oldPeriods.array[i] = periods.array[i];
+  }
+  int j, k;
   for (i = 0; i < minCyclesCount; ++i)
   {
     int schedTemp = 0;
@@ -106,26 +115,70 @@ int main(int argc, char **argv)
     {
       if (tasksFreq.array[j] > 0)
       {
-        if (time == 0)
-        {
-            schedTemp |= (int)(1u << j);
-            (tasksFreq.array[j])--; 
-        }
-        else 
-        {
-            printf("time: %d, period: %d, task: %d\n", time, periods.array[j], j);
-            if((time%periods.array[j]) == 0) {
-              schedTemp |= (int)(1u << j);
-              (tasksFreq.array[j])--;
+        // if (time == 0) 
+        // {
+        //     schedTemp |= (int)(1u << j);
+        //     (tasksFreq.array[j])--; 
+        // }
+        // else 
+        // {
+
+            printf("time: %d, period: %d, task: %d, delay: %d\n", time, periods.array[j], j, delays.array[j]);
+            if(((time-delays.array[j])%periods.array[j]) == 0) {
+              for (k = 0; k < tasksCount; ++k)
+              {
+                // printf("%d, %d\n", schedTemp, (1u << k));
+                if ((schedTemp & (1u << k)))
+                {
+                  wcetsSum += wcets.array[k];  
+                }
+              }
+              // printf("%d + %d = %d\n", wcetsSum, wcets.array[j], (wcetsSum+wcets.array[j]));
+              if ((wcetsSum + wcets.array[j]) <= minCycle)
+              {
+                printf("%d, cycle: %d\n", j+1, i);
+
+                if(delays.array[j] != 0) {
+                  printf("%s\n", "what");
+                  periods.array[j] += delays.array[j];
+                  delays.array[j] = 0;  
+                  printf("%d\n", delays.array[j]);
+                }
+                schedTemp |= (int)(1u << j);
+
+                
+                (tasksFreq.array[j])--;  
+                // delays.array[j] = 0;
+              }
+              else {
+                printf("%d\n", periods.array[j]);
+                printf("%d\n", oldPeriods.array[j]);
+                if (periods.array[j] == oldPeriods.array[j])
+                {
+                  delays.array[j] += minCycle;
+                  printf("Delayed by: %d (task %d), cycle: %d, time: %d\n", delays.array[j], j+1, i, time);
+                }
+                
+              }
+              wcetsSum = 0;
             }
-        }        
+        // }        
       }
+      // printf("sched temp: %d\n", schedTemp);
 
     }
     time += minCycle;
     insertArray(&schedTable, schedTemp);
-
   }
+  for (i = 0; i < tasksCount; ++i)
+  {
+    printf("%d\n", oldPeriods.array[i]);
+  }
+  for (i = 0; i < minCyclesCount; ++i)
+  {
+    
+  }
+
   for (i = 0; i < schedTable.used; ++i)
   {
     printf("%d\n", (int)schedTable.array[i]);
@@ -133,24 +186,34 @@ int main(int argc, char **argv)
   printf("%s\n", "frequencies:");
   for (i = 0; i < tasksFreq.used; ++i)
   {
+    if (tasksFreq.array[i] != 0)
+    {
+      printf("%s\n", "Can't generate schedule table, probably, the WCETs of tasks are too big.");
+      exit(EXIT_FAILURE);
+    }
     printf("f %d\n", tasksFreq.array[i]);
   }
-  printf("number of min cycles: %d\n", minCyclesCount);
-  // 
-  // reading file
+  // printf("number of min cycles: %d\n", minCyclesCount);
+  // // 
+  // // reading file
 
-  for (i = 0; i < inArgs.filenames.used; ++i)
-  {
-    fp = fopen((const char*)inArgs.filenames.array[i], "r");
-    if (fp == NULL)
-         exit(EXIT_FAILURE);
-    while ((read = getline(&line, &len, fp)) != -1) {
-         printf("%s", line);
-     }
-  }
-  for (i = 0; i < inArgs.tasks.used; ++i)
-  {
-    printf("%s\n", (char*)inArgs.tasks.array[i]);
-  }
+  // for (i = 0; i < inArgs.filenames.used; ++i)
+  // {
+  //   fp = fopen((const char*)inArgs.filenames.array[i], "r");
+  //   if (fp == NULL)
+  //        exit(EXIT_FAILURE);
+  //   while ((read = getline(&line, &len, fp)) != -1) {
+  //        printf("%s", line);
+  //    }
+  // }
+  // for (i = 0; i < inArgs.tasks.used; ++i)
+  // {
+  //   printf("%s\n", (char*)inArgs.tasks.array[i]);
+  // }
+
+  char *header = "#include <sys/time.h> \
+                  #include <time.h> \
+                  #include <stdint.h> \
+                  #include <stdio.h> "
   return 0;
 }
