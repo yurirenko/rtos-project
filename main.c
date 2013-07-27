@@ -214,6 +214,10 @@ int main(int argc, char **argv)
   char *header = "#include <sys/time.h> \
                   #include <time.h> \
                   #include <stdint.h> \
-                  #include <stdio.h> "
+                  #include <stdio.h> ";
+
+  char *main = "  extern int clock_nanosleep(clockid_t __clock_id, int __flags, \
+                 __const struct timespec *__req, \
+                  struct timespec *__rem);";
   return 0;
 }
