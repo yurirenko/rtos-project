@@ -8,6 +8,15 @@
 
 
 
+void write(FILE *fp, FILE *out) {
+  char *line;
+  size_t len = 0;
+  ssize_t read;
+  while((read = getline(&line, &len, fp)) != -1) {
+    fprintf(out, "%s", line);
+  }
+}
+
 int gcd(int a, int b)
 {
   if (a==0) return b;
@@ -197,27 +206,110 @@ int main(int argc, char **argv)
   // // 
   // // reading file
 
-  // for (i = 0; i < inArgs.filenames.used; ++i)
-  // {
-  //   fp = fopen((const char*)inArgs.filenames.array[i], "r");
-  //   if (fp == NULL)
-  //        exit(EXIT_FAILURE);
-  //   while ((read = getline(&line, &len, fp)) != -1) {
-  //        printf("%s", line);
-  //    }
-  // }
-  // for (i = 0; i < inArgs.tasks.used; ++i)
-  // {
-  //   printf("%s\n", (char*)inArgs.tasks.array[i]);
-  // }
 
-  char *header = "#include <sys/time.h> \
-                  #include <time.h> \
-                  #include <stdint.h> \
-                  #include <stdio.h> ";
 
-  char *main = "  extern int clock_nanosleep(clockid_t __clock_id, int __flags, \
-                 __const struct timespec *__req, \
-                  struct timespec *__rem);";
+  char *minCycleDef = "\n#define MINOR_CYCLE";
+  char *majCycleDef = "\n#define MAJOR_CYCLE";
+  char *table = "\nstatic uint8_t scheduling_table[] = ";
+
+  FILE *out = fopen("out.c", "w");
+  fp = fopen("out_code/headers.c", "r");
+  write(fp, out);
+  fprintf(out, "%s %d\n", minCycleDef, minCycle);
+  fprintf(out, "%s %d\n", majCycleDef, majCycle);
+  fprintf(out, "%s {", table);
+  for (i = 0; i < minCyclesCount; ++i)
+  {
+    if((i + 1) == minCyclesCount) 
+      fprintf(out, " %d };\n\n", schedTable.array[i]);
+    else
+      fprintf(out, " %d,", schedTable.array[i]);
+  }
+  fp = fopen("out_code/func.c", "r");
+  write(fp, out);
+
+  for (i = 0; i < inArgs.filenames.used; ++i)
+  {
+    fp = fopen((const char*)inArgs.filenames.array[i], "r");
+    if (fp == NULL)
+         exit(EXIT_FAILURE);
+    while ((read = getline(&line, &len, fp)) != -1) {
+         fprintf(out, "%s", line);
+    }
+    fprintf(out, "\n");
+
+  }
+
+  fp = fopen("out_code/main.c", "r");
+  write(fp, out);
+
+  for (i = 0; i < tasksCount; ++i)
+  {
+    fprintf(out, "\n\t\t\t\tif (scheduled_tasks & %d)\t\t\t\t\t\n", (1u << i));
+    fprintf(out, "\t\t\t\t\t\t%s();\n", strtok((char*)inArgs.filenames.array[i], "."));
+  }
+  fprintf(out, "\n\t\t\t\tt = (t + MINOR_CYCLE)%%MAJOR_CYCLE;\n");
+  fprintf(out, "\t\t}");
+  fprintf(out, "\t return 0;\n}");
+
+
+//   int main(int argc, char *argv[])
+// {
+//     int res;
+//     int t = 0;
+
+//     res = start_periodic_timer(1000000, MINOR_CYCLE * 1000);
+//     if (res < 0) {
+//         perror("Start Periodic Timer");
+
+//         return -1;
+//     }
+
+//     while(1) {
+//         uint8_t scheduled_tasks;
+
+//         wait_next_activation();
+//         scheduled_tasks = scheduling_table[t / MINOR_CYCLE];
+//         if (scheduled_tasks & 0x01) {
+//       task1();
+//         }
+//         if (scheduled_tasks & 0x02) {
+//       task2();
+//         }
+//         if (scheduled_tasks & 0x04) {
+//       task3();
+//         }
+//         t = (t + MINOR_CYCLE) % MAJOR_CYCLE;
+//     }
+
+//     return 0;
+  Array methodsNames;
+  initArray(&methodsNames, 1);
+  for (i = 0; i < inArgs.filenames.used; ++i)
+  {
+    insertArray(&methodsNames, (int)strtok((char*)inArgs.filenames.array[i], "."));
+    printf("%s\n", (char*)methodsNames.array[i]);
+  }
+  
+
+  // fprintf(f, "%s\n", );
+
+  // char *resultStr1;
+  // char *resultStr2;
+  // asprintf(&resultStr1, "%s\n%s", header, fnanoSleep);
+  // // printf("%s\n", resultStr1);
+
+  // char *cyclesDef;
+  // asprintf(&cyclesDef, "%s %i\n %s %i\n", minCycleDef, minCycle, majCycleDef, majCycle);
+  // asprintf(&resultStr2, "%s\n %s", resultStr1, cyclesDef);
+  // printf("%s\n", resultStr2);
+  // char tableString[minCyclesCount];
+  // for (i = 0; i < minCyclesCount; ++i)
+  // {
+  //   tableString[i] = (char)schedTable.array[i];
+  // }
+  // 
+  // printf("%d\n", schedTable.array);
+  
   return 0;
 }

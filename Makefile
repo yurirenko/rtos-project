@@ -4,7 +4,7 @@ main: main.o array.o parser.o
 	gcc main.o array.o parser.o -o main
 
 main.o: main.c
-	gcc -Wall -c main.c
+	gcc -D_GNU_SOURCE -Wall -c main.c
 
 array.o: array.c
 	gcc -Wall -c array.c
