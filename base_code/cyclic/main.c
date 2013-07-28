@@ -13,9 +13,6 @@ int main(int argc, char *argv[])
     while(1) {
         uint8_t scheduled_tasks;
 
-
-
-
         wait_next_activation(pt);
 
         scheduled_tasks = scheduling_table[t / MINOR_CYCLE];
